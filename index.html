@@ -1,0 +1,1483 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Offline, single-file tracker for advance reader copies: reader list, ARC send and due dates, friendly nudge reminders, review history, quote harvesting and thank-you drafts. All data stays in your browser.">
+<title>ARC Review Tracker — offline tool for authors</title>
+<style>
+:root{
+  --bg:#f7f2e9; --surface:#fffdf8; --surface-2:#fbf6ec; --ink:#2e2924; --muted:#7b6f61;
+  --line:#e8e0d2; --line-strong:#d9cfbd; --field:#ffffff;
+  --accent:#b0492f; --accent-soft:#f6e3dc; --accent-ink:#fff;
+  --ok-bg:#d9ecd9; --ok-ink:#2c6e3f; --soon-bg:#f7e6bd; --soon-ink:#8a5a0b;
+  --today-bg:#fde4cf; --today-ink:#a34e12; --over-bg:#f8d3cc; --over-ink:#a23125;
+  --dim-bg:#e9e6df; --dim-ink:#736a5d; --focus:#b0492f66;
+  --shadow:0 1px 2px rgb(46 41 36 / .05), 0 4px 14px rgb(46 41 36 / .06);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#211d19; --surface:#2a2521; --surface-2:#242019; --ink:#efe7db; --muted:#a3988a;
+    --line:#3a332c; --line-strong:#4a4239; --field:#211d19;
+    --accent:#d0684b; --accent-soft:#453029; --accent-ink:#1c120e;
+    --ok-bg:#24402c; --ok-ink:#9ed3ab; --soon-bg:#463818; --soon-ink:#e6c478;
+    --today-bg:#4a2f18; --today-ink:#f0b184; --over-bg:#4a231d; --over-ink:#f0a296;
+    --dim-bg:#332e28; --dim-ink:#8d8477; --focus:#d0684b66;
+    --shadow:0 1px 2px rgb(0 0 0 / .3), 0 6px 18px rgb(0 0 0 / .35);
+  }
+}
+*{box-sizing:border-box}
+html{font-size:16px}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height:1.5; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{line-height:1.25; margin:0 0 .35em}
+h1{font-size:1.3rem} h2{font-size:1.45rem} h3{font-size:1.05rem}
+p{margin:.2em 0 .6em}
+a{color:var(--accent)}
+.muted{color:var(--muted); font-size:.92rem}
+.lead{color:var(--muted); max-width:64ch}
+.top{
+  background:var(--surface); border-bottom:1px solid var(--line);
+  padding:.8rem 1rem .55rem; position:sticky; top:0; z-index:10; box-shadow:var(--shadow);
+}
+.wrap{max-width:1080px; margin:0 auto; padding:0 1rem}
+.brand{display:flex; align-items:center; gap:.7rem; margin-bottom:.6rem}
+.badge{
+  flex:none; width:44px; height:44px; border-radius:12px; background:var(--accent); color:var(--accent-ink);
+  display:grid; place-items:center; font-weight:800; letter-spacing:.03em; font-size:.8rem;
+}
+.brand h1{margin:0} .brand p{margin:0; font-size:.82rem; color:var(--muted)}
+nav[role="tablist"]{display:flex; flex-wrap:wrap; gap:.35rem; margin:0 -.3rem}
+nav button{
+  appearance:none; border:1px solid transparent; background:none; color:var(--muted);
+  font:inherit; font-weight:650; font-size:.93rem; padding:.42rem .8rem; border-radius:999px; cursor:pointer;
+}
+nav button:hover{color:var(--ink); background:var(--surface-2)}
+nav button[aria-selected="true"]{background:var(--accent-soft); color:var(--accent); border-color:currentColor}
+main{padding:1.2rem 0 3rem}
+.view[hidden]{display:none}
+.view>header{margin-bottom:1rem}
+.panel{
+  background:var(--surface); border:1px solid var(--line); border-radius:16px;
+  padding:1rem 1.1rem; box-shadow:var(--shadow); margin-bottom:1.1rem;
+}
+.panel h3{margin-bottom:.5rem}
+.panel.tint{background:var(--surface-2)}
+details.panel summary{cursor:pointer}
+.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:.7rem; margin-bottom:1.1rem}
+.stat{
+  background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:.75rem .9rem; box-shadow:var(--shadow);
+}
+.stat .n{font-size:1.5rem; font-weight:800; letter-spacing:-.01em}
+.stat .t{font-size:.8rem; color:var(--muted)}
+.cards{display:flex; flex-direction:column; gap:.65rem}
+.card{
+  background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:.85rem 1rem; box-shadow:var(--shadow);
+  display:flex; flex-wrap:wrap; gap:.35rem .75rem; align-items:flex-start;
+}
+.card-main{flex:1 1 260px; min-width:0}
+.card-title{font-weight:700}
+.card-sub{color:var(--muted); font-size:.86rem; margin-top:.1rem}
+.card-actions{display:flex; flex-wrap:wrap; gap:.4rem; align-items:center}
+.card-block{width:100%}
+.chip{
+  display:inline-block; padding:.1rem .55rem; border-radius:999px; font-size:.76rem; font-weight:650;
+  background:var(--dim-bg); color:var(--dim-ink); vertical-align:middle;
+}
+.chip.plat{background:var(--accent-soft); color:var(--accent)}
+.st-waiting{background:var(--dim-bg); color:var(--dim-ink)}
+.st-due-soon{background:var(--soon-bg); color:var(--soon-ink)}
+.st-due-today{background:var(--today-bg); color:var(--today-ink)}
+.st-overdue{background:var(--over-bg); color:var(--over-ink)}
+.st-posted{background:var(--ok-bg); color:var(--ok-ink)}
+button{
+  appearance:none; font:inherit; cursor:pointer; border-radius:10px; border:1px solid var(--line-strong);
+  background:var(--surface); color:var(--ink); padding:.42rem .8rem; font-size:.88rem; font-weight:600;
+  transition:background .15s ease, border-color .15s ease;
+}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink)}
+button.primary:hover{filter:brightness(1.05)}
+button.danger{color:var(--over-ink)}
+button.mini{padding:.28rem .6rem; font-size:.8rem; border-radius:9px}
+label.btn-file{display:inline-flex; align-items:center; gap:.4rem; cursor:pointer}
+.nav-cancel{display:none}
+.field{display:flex; flex-direction:column; gap:.3rem; font-size:.85rem; color:var(--muted); font-weight:600}
+.field input,.field select,.field textarea{
+  font:inherit; font-size:.95rem; color:var(--ink); background:var(--field);
+  border:1px solid var(--line-strong); border-radius:10px; padding:.5rem .65rem; width:100%; font-weight:500;
+}
+.field textarea{resize:vertical}
+.field input:focus-visible,.field select:focus-visible,.field textarea:focus-visible,
+button:focus-visible, nav button:focus-visible, summary:focus-visible, a:focus-visible{
+  outline:3px solid var(--focus); outline-offset:1px;
+}
+.form-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:.7rem}
+.form-grid .wide{grid-column:1/-1}
+.form-foot{display:flex; flex-wrap:wrap; gap:.6rem; align-items:center; margin-top:.7rem}
+.empty{
+  border:1.5px dashed var(--line-strong); border-radius:14px; padding:.9rem 1rem;
+  color:var(--muted); font-size:.93rem; background:var(--surface-2);
+}
+.bar{height:10px; background:var(--dim-bg); border-radius:999px; overflow:hidden; margin:.35rem 0 .2rem}
+.bar>span{display:block; height:100%; background:var(--ok-ink); border-radius:999px; width:0; transition:width .3s ease}
+.rows{display:flex; flex-direction:column}
+.rowline{display:flex; flex-wrap:wrap; gap:.3rem .8rem; padding:.55rem .2rem; border-bottom:1px solid var(--line); align-items:baseline}
+.rowline:last-child{border-bottom:none}
+.rowline .when{color:var(--muted); font-size:.82rem; min-width:6.5rem}
+.rowline .what{font-weight:650}
+.quote-text{margin:.1rem 0 .4rem}
+.card textarea{width:100%; font:inherit; font-size:.95rem; background:var(--field); color:var(--ink); border:1px solid var(--line-strong); border-radius:10px; padding:.5rem .65rem; resize:vertical}
+dialog{
+  border:none; border-radius:16px; padding:1.1rem 1.2rem; background:var(--surface); color:var(--ink);
+  max-width:540px; width:calc(100% - 2rem); box-shadow:0 12px 40px rgb(0 0 0 / .25);
+}
+dialog::backdrop{background:rgb(20 15 10 / .45)}
+.toast{
+  position:fixed; left:50%; bottom:1.2rem; transform:translateX(-50%) translateY(20px);
+  background:var(--ink); color:var(--bg); padding:.6rem 1rem; border-radius:12px; font-size:.9rem; font-weight:600;
+  opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease; max-width:min(92vw,540px); text-align:center; z-index:50;
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+@media (prefers-reduced-motion: reduce){ *{transition:none !important} }
+footer{border-top:1px solid var(--line); color:var(--muted); font-size:.84rem; padding:1rem 1.2rem 2rem; max-width:1080px; margin:0 auto}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <div class="badge" aria-hidden="true">ARC</div>
+      <div>
+        <h1>ARC Review Tracker</h1>
+        <p>Kind, offline reminders for your advance reader copies</p>
+      </div>
+    </div>
+    <nav id="tabs" role="tablist" aria-label="Sections">
+      <button type="button" role="tab" data-tab="dashboard" aria-selected="true">Dashboard</button>
+      <button type="button" role="tab" data-tab="readers" aria-selected="false">Readers</button>
+      <button type="button" role="tab" data-tab="arcs" aria-selected="false">ARCs</button>
+      <button type="button" role="tab" data-tab="reviews" aria-selected="false">Reviews</button>
+      <button type="button" role="tab" data-tab="quotes" aria-selected="false">Quotes</button>
+      <button type="button" role="tab" data-tab="thanks" aria-selected="false">Thank-yous</button>
+      <button type="button" role="tab" data-tab="data" aria-selected="false">Backup</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+<section id="view-dashboard" class="view" role="tabpanel" aria-label="Dashboard">
+  <h2>Today at a glance</h2>
+  <p class="muted" id="dash-day"></p>
+  <div class="stats" id="dash-stats"></div>
+  <div class="panel">
+    <h3>Needs a nudge today</h3>
+    <p class="muted">Nudges start 3 days before a due date, then every 7 days while overdue. Nothing sends itself — you always press copy and send it wherever you talk to that reader.</p>
+    <div id="dash-nudges"></div>
+  </div>
+  <div class="panel tint">
+    <h3>Review progress</h3>
+    <p class="muted" id="dash-progress-label"></p>
+    <div class="bar"><span id="dash-progress-bar"></span></div>
+  </div>
+  <div class="panel tint">
+    <h3>Coming up</h3>
+    <div id="dash-upcoming"></div>
+  </div>
+  <div class="panel tint">
+    <h3>Recent review history</h3>
+    <div id="dash-recent"></div>
+  </div>
+</section>
+
+<section id="view-readers" class="view" role="tabpanel" aria-label="Readers" hidden>
+  <h2>Readers <span class="muted" id="count-readers"></span></h2>
+  <p class="lead">Your advance-copy team. Keep the people you send ARCs to and where they normally post reviews. This list is yours alone — no logins, no scanning, no sharing.</p>
+  <div class="panel">
+    <h3 id="reader-form-title">Add a reader</h3>
+    <form id="form-reader" class="form-grid">
+      <input type="hidden" id="reader-id" value="">
+      <label class="field">Name
+        <input id="reader-name" type="text" required autocomplete="off" placeholder="e.g. Jordan P.">
+      </label>
+      <label class="field">Platform
+        <select id="reader-platform" required></select>
+      </label>
+      <label class="field">Handle or link (optional)
+        <input id="reader-handle" type="text" autocomplete="off" placeholder="@readername or URL">
+      </label>
+      <label class="field wide">Notes (optional)
+        <input id="reader-notes" type="text" autocomplete="off" placeholder="Prefers ePub, loves niche nonfiction, gentle follow-ups…">
+      </label>
+      <div class="form-foot wide">
+        <button type="submit" class="primary" id="save-reader">Add reader</button>
+        <button type="button" class="nav-cancel" id="cancel-reader-edit">Cancel edit</button>
+      </div>
+    </form>
+  </div>
+  <div id="list-readers" class="cards"></div>
+</section>
+
+<section id="view-arcs" class="view" role="tabpanel" aria-label="ARCs" hidden>
+  <h2>ARC tracker <span class="muted" id="count-arcs"></span></h2>
+  <p class="lead">Track copies you sent and when reviews are due. Statuses come from the dates, so one glance is enough.</p>
+  <div class="panel">
+    <h3 id="arc-form-title">Send an ARC</h3>
+    <form id="form-arc" class="form-grid">
+      <input type="hidden" id="arc-id" value="">
+      <label class="field">Reader
+        <select id="arc-reader" required></select>
+      </label>
+      <label class="field">Book title
+        <input id="arc-book" type="text" required autocomplete="off">
+      </label>
+      <label class="field">Format
+        <select id="arc-format"></select>
+      </label>
+      <label class="field">Date sent
+        <input id="arc-sent" type="date" required>
+      </label>
+      <label class="field">Review due
+        <input id="arc-due" type="date" required>
+      </label>
+      <div class="form-foot wide">
+        <button type="submit" class="primary" id="save-arc">Track ARC</button>
+        <button type="button" class="nav-cancel" id="cancel-arc-edit">Cancel edit</button>
+        <span class="muted">Nudges start 3 days before the due date.</span>
+      </div>
+    </form>
+  </div>
+  <div class="form-foot" style="margin-bottom:.55rem">
+    <label class="field" style="max-width:260px">Show
+      <select id="filter-arc">
+        <option value="active">Active (waiting for reviews)</option>
+        <option value="needs-nudge">Needs a nudge</option>
+        <option value="posted">Review posted</option>
+        <option value="archived">Archived / cancelled</option>
+        <option value="all">Everything</option>
+      </select>
+    </label>
+  </div>
+  <div id="list-arcs" class="cards"></div>
+</section>
+
+<section id="view-reviews" class="view" role="tabpanel" aria-label="Reviews" hidden>
+  <h2>Review history <span class="muted" id="count-reviews"></span></h2>
+  <p class="lead">A quiet record of every completed review. If one included a line you loved, it waits in the Quotes tab too.</p>
+  <div class="panel tint">
+    <div class="stats" id="review-stats" style="margin:0"></div>
+  </div>
+  <div id="list-reviews" class="cards"></div>
+</section>
+
+<section id="view-quotes" class="view" role="tabpanel" aria-label="Quotes" hidden>
+  <h2>Quotes & blurbs <span class="muted" id="count-quotes"></span></h2>
+  <p class="lead">Harvest the fine lines readers leave about your book and assemble cover-worthy blurbs. Quotes from marked reviews arrive here on their own.</p>
+  <div class="panel">
+    <h3>Blurb builder</h3>
+    <label class="field">Working blurb
+      <textarea id="blurb-text" rows="7" placeholder="Press “Add to blurb” on a quote below, or just type here."></textarea>
+    </label>
+    <div class="form-foot">
+      <button type="button" id="btn-blurb-copy">Copy blurb</button>
+      <button type="button" id="btn-blurb-clear">Clear</button>
+      <span class="muted">The working text saves as you type.</span>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>Add a quote</h3>
+    <form id="form-quote" class="form-grid">
+      <label class="field wide">Quote
+        <textarea id="quote-text" rows="3" required placeholder="“The chapter on agents finally made it click for me.”"></textarea>
+      </label>
+      <label class="field">Sourced from (optional)
+        <input id="quote-source" type="text" autocomplete="off" placeholder="Reader name or outlet">
+      </label>
+      <label class="field">Platform (optional)
+        <input id="quote-platform" type="text" autocomplete="off" placeholder="Goodreads, TikTok…">
+      </label>
+      <div class="form-foot wide">
+        <button type="submit" class="primary">Save quote</button>
+      </div>
+    </form>
+  </div>
+  <div id="list-quotes" class="cards"></div>
+</section>
+
+<section id="view-thanks" class="view" role="tabpanel" aria-label="Thank-yous" hidden>
+  <h2>Thank-you notes <span class="muted" id="count-thanks"></span></h2>
+  <p class="lead">A draft is created when you mark a review posted. Add more below, tweak the wording freely, and copy the ones you like.</p>
+  <details class="panel">
+    <summary><strong>New thank-you draft</strong></summary>
+    <form id="form-thanks" class="form-grid" style="margin-top:.7rem">
+      <label class="field">Reader name
+        <input id="thanks-name" type="text" required autocomplete="off">
+      </label>
+      <label class="field">Book (optional)
+        <input id="thanks-book" type="text" autocomplete="off">
+      </label>
+      <label class="field wide">Draft
+        <textarea id="thanks-text" rows="5" required></textarea>
+      </label>
+      <div class="form-foot wide">
+        <button type="submit" class="primary">Save draft</button>
+      </div>
+    </form>
+  </details>
+  <h3 style="margin:.9rem 0 .5rem">Drafts</h3>
+  <div id="list-thanks" class="cards"></div>
+  <h3 style="margin:1.1rem 0 .5rem">Sent</h3>
+  <div id="list-thanks-sent" class="cards"></div>
+</section>
+
+<section id="view-data" class="view" role="tabpanel" aria-label="Backup and settings" hidden>
+  <h2>Backup & settings</h2>
+  <p class="lead">Everything lives in this browser's localStorage on this device. Export a small JSON backup now and then — it's one readable file you can re-import anywhere, forever.</p>
+  <div class="panel">
+    <h3>Backup</h3>
+    <div class="form-foot" style="margin-top:0">
+      <button type="button" id="btn-export" class="primary">Export backup (JSON)</button>
+      <label class="btn-file">Import backup
+        <input type="file" id="input-import" accept=".json,application/json" hidden>
+      </label>
+      <span class="muted" id="data-info"></span>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>Sample data</h3>
+    <p class="muted">Adds a small fictional set of readers and ARCs so you can see how everything looks. Nothing real is collected; delete any item whenever you like.</p>
+    <button type="button" id="btn-sample">Load sample data</button>
+  </div>
+  <div class="panel">
+    <h3>Defaults</h3>
+    <form id="form-settings" class="form-grid">
+      <label class="field">Your name (used in drafts)
+        <input id="set-author" type="text" autocomplete="off" placeholder="Dylan">
+      </label>
+      <label class="field">Default book title
+        <input id="set-default-book" type="text" autocomplete="off">
+      </label>
+      <label class="field">Default review window (days)
+        <input id="set-default-days" type="number" min="1" max="365">
+      </label>
+      <div class="form-foot wide">
+        <button type="submit" class="primary">Save settings</button>
+      </div>
+    </form>
+  </div>
+  <div class="panel">
+    <h3>Start over</h3>
+    <p class="muted">Removes every reader, ARC, review, quote and note from this browser on this device. Export a backup first if you might want it back.</p>
+    <div class="form-foot">
+      <button type="button" id="btn-wipe" class="danger">Erase all data</button>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <p><strong>ARC Review Tracker</strong> · Works fully offline: this page is a single file and your data stays in this browser's localStorage. No accounts, no scraping, no logins, no automatic messages — you always press send yourself.</p>
+  <p>Built with care by <strong>Asdale Dynamics, LLC</strong> · MIT licensed · Complements the KDP Sales Tracker and the Free Author Printables pack.</p>
+</footer>
+
+<dialog id="modal-review">
+  <form id="form-review" novalidate>
+    <h3>Mark review posted</h3>
+    <p class="muted" id="modal-review-for"></p>
+    <div class="form-grid">
+      <label class="field">Where did it go up?
+        <select id="review-platform" required></select>
+      </label>
+      <label class="field">Date posted
+        <input id="review-posted" type="date" required>
+      </label>
+      <label class="field">Rating (optional)
+        <select id="review-rating">
+          <option value="">No rating</option>
+          <option value="5">5 stars</option>
+          <option value="4">4 stars</option>
+          <option value="3">3 stars</option>
+          <option value="2">2 stars</option>
+          <option value="1">1 star</option>
+        </select>
+      </label>
+      <label class="field wide">Link (optional)
+        <input id="review-link" type="text" autocomplete="off" placeholder="URL or where you found it">
+      </label>
+      <label class="field wide">Favorite quote (optional)
+        <textarea id="review-quote" rows="4" placeholder="A line you'd love on the book's cover…"></textarea>
+      </label>
+    </div>
+    <div class="form-foot">
+      <button type="submit" class="primary">Save review</button>
+      <button type="button" id="review-cancel">Close</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+
+const DAY_MS = 86400000;
+const STORAGE_KEY = 'arcReviewTracker.v1';
+const NUDGE_AHEAD_DAYS = 3;
+const CHECKIN_INTERVAL_DAYS = 7;
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const WEEKDAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const PLATFORMS = ['Amazon','Goodreads','The StoryGraph','BookBub','TikTok','Instagram','YouTube','Podcast','Blog','Newsletter','Other'];
+const FORMATS = ['ePub (file)','PDF (file)','mobi (file)','Kindle gift','Paperback','Hardcover','Audiobook','Other'];
+const NUDGE_LABELS = {
+  'heads-up': 'Gentle heads-up (3 days out)',
+  'due-today': 'Due-date reminder',
+  'overdue-early': 'Kind check-in (a week late or less)',
+  'overdue-late': 'Soft final check-in (over a week late)'
+};
+
+function parseISODate(s){
+  if (typeof s !== 'string') return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s.trim());
+  if (!m) return null;
+  const y = Number(m[1]), mo = Number(m[2]) - 1, d = Number(m[3]);
+  if (mo < 0 || mo > 11) return null;
+  const dt = new Date(Date.UTC(y, mo, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo || dt.getUTCDate() !== d) return null;
+  return dt;
+}
+
+function isoFromUTCDate(d){
+  return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2,'0') + '-' + String(d.getUTCDate()).padStart(2,'0');
+}
+
+function todayISO(){
+  const n = new Date();
+  return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0');
+}
+
+function addDays(iso, n){
+  const d = parseISODate(iso);
+  if (!d || !Number.isFinite(n)) return null;
+  d.setUTCDate(d.getUTCDate() + n);
+  return isoFromUTCDate(d);
+}
+
+function daysBetween(fromIso, toIso){
+  const a = parseISODate(fromIso), b = parseISODate(toIso);
+  if (!a || !b) return null;
+  return Math.round((b.getTime() - a.getTime()) / DAY_MS);
+}
+
+function friendlyDate(iso){
+  const d = parseISODate(iso);
+  if (!d) return '—';
+  return MONTHS[d.getUTCMonth()] + ' ' + d.getUTCDate() + ', ' + d.getUTCFullYear();
+}
+
+function shortestDate(iso){
+  const d = parseISODate(iso);
+  if (!d) return '—';
+  return MONTHS[d.getUTCMonth()] + ' ' + d.getUTCDate();
+}
+
+function nudgePlan(dueIso, todayIso){
+  const due = parseISODate(dueIso), today = parseISODate(todayIso);
+  if (!due || !today) return { state:'invalid', daysToDue:null, daysOverdue:null, firstNudgeISO:null, tier:null };
+  const daysToDue = daysBetween(todayIso, dueIso);
+  const firstNudgeISO = addDays(dueIso, -NUDGE_AHEAD_DAYS);
+  let state;
+  if (daysToDue < 0) state = 'overdue';
+  else if (daysToDue === 0) state = 'due-today';
+  else if (daysToDue <= NUDGE_AHEAD_DAYS) state = 'due-soon';
+  else state = 'waiting';
+  const daysOverdue = Math.max(0, -daysToDue);
+  let tier = null;
+  if (state === 'overdue') tier = daysOverdue <= CHECKIN_INTERVAL_DAYS ? 'overdue-early' : 'overdue-late';
+  else if (state === 'due-today') tier = 'due-today';
+  else if (state === 'due-soon') tier = 'heads-up';
+  return { state, daysToDue, daysOverdue, firstNudgeISO, tier };
+}
+
+function needsNudge(arc, todayIso){
+  if (!arc || arc.status !== 'waiting') return null;
+  const p = nudgePlan(arc.dueISO, todayIso);
+  if (p.state === 'waiting' || p.state === 'invalid') return null;
+  const sent = Array.isArray(arc.nudgesSent) ? arc.nudgesSent.filter(d => parseISODate(d)) : [];
+  if (p.state === 'due-soon' || p.state === 'due-today'){
+    const covered = sent.some(d => {
+      const n = daysBetween(p.firstNudgeISO, d);
+      return n !== null && n >= 0;
+    });
+    return covered ? null : { tier: p.tier, plan: p };
+  }
+  const last = sent.sort().pop();
+  if (last){
+    const since = daysBetween(last, todayIso);
+    if (since !== null && since < CHECKIN_INTERVAL_DAYS) return null;
+  }
+  return { tier: p.tier, plan: p };
+}
+
+function nudgeMessage(tier, ctx){
+  const name = (ctx && ctx.name) || 'there';
+  const book = (ctx && ctx.book) || 'the advance copy';
+  const due = (ctx && ctx.due) || 'soon';
+  const platform = (ctx && ctx.platform) || 'your usual platform';
+  if (tier === 'heads-up'){
+    return 'Hi ' + name + '! Quick friendly heads-up: the review date for your advance copy of ' + book +
+      ' lands ' + due + '. Zero pressure on length or tone — a few honest words on ' + platform +
+      ' would mean a lot. And if it is already up, tell me so I can celebrate right away. Thank you for reading with me!';
+  }
+  if (tier === 'due-today'){
+    return 'Hi ' + name + '! Today is the review day for ' + book + '. A short honest review on ' + platform +
+      ' is the dream here — two sentences are plenty, and spoilers or star ratings are never required. ' +
+      'Once it is live, let me know and I will tuck your best line into my quote jar.';
+  }
+  if (tier === 'overdue-early'){
+    return 'Hi ' + name + '! A soft, un-scoldy check-in: the review date for ' + book + ' (' + due +
+      ') slipped past a few days ago. Life happens and reading happens on its own schedule. ' +
+      'If you finished, I would love to know where it went up; if the mood never came, that is completely fine too. Either way, thank you!';
+  }
+  if (tier === 'overdue-late'){
+    return 'Hi ' + name + '! Last gentle nudge about the advance copy of ' + book + ', since it has been a while. ' +
+      'If the moment has passed and you would rather not post a review, that is genuinely okay — a quick note saying so helps me tidy my list. ' +
+      'Your time with the book was already a gift. Thank you!';
+  }
+  return '';
+}
+
+function duePhrase(p){
+  if (!p || p.state === 'invalid') return '';
+  if (p.state === 'overdue') return p.daysOverdue === 1 ? 'a day late' : p.daysOverdue + ' days late';
+  if (p.state === 'due-today') return 'due today';
+  if (p.state === 'due-soon') return 'due in ' + p.daysToDue + ' days';
+  return 'due in ' + p.daysToDue + ' days';
+}
+
+function buildThankYou(ctx){
+  const name = (ctx && ctx.name) || 'there';
+  const book = (ctx && ctx.book) || 'the book';
+  const author = (ctx && ctx.author) || '';
+  let t = 'Hi ' + name + ', thank you for the review of ' + book +
+    ' — seeing it go up genuinely made my week. Readers like you are the whole reason advance copies exist.';
+  if (ctx && ctx.quote){
+    t += ' A line of yours staying with me: “' + ctx.quote + '”. If you are comfortable with it, I may share it in a blurb, with full credit to you.';
+  }
+  t += author ? ' Warmly, ' + author : ' Warmly, and thank you again.';
+  return t;
+}
+
+function defaultDb(){
+  return {
+    version: 1,
+    settings: { defaultBook: 'The Massive AI Manual', defaultDueDays: 21, authorName: '', blurbDraft: '' },
+    readers: [],
+    arcs: [],
+    reviews: [],
+    quotes: [],
+    thanks: []
+  };
+}
+
+function normalizeDb(data){
+  const d = defaultDb();
+  if (!data || typeof data !== 'object') return d;
+  if (data.settings && typeof data.settings === 'object'){
+    d.settings = Object.assign(d.settings, data.settings);
+  }
+  const lists = { readers:'readers', arcs:'arcs', reviews:'reviews', quotes:'quotes', thanks:'thanks' };
+  for (const k in lists){
+    if (Array.isArray(data[k])) d[k] = data[k].filter(x => x && typeof x === 'object');
+  }
+  return d;
+}
+
+function loadDb(){
+  try {
+    if (typeof localStorage === 'undefined') return defaultDb();
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultDb();
+    return normalizeDb(JSON.parse(raw));
+  } catch (e) {
+    return defaultDb();
+  }
+}
+
+function commitDb(d){
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function getDb(){
+  if (db === null || db === undefined) db = loadDb();
+  return db;
+}
+
+function uid(){
+  return 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+function makeSampleDb(){
+  const d = defaultDb();
+  const today = todayISO();
+  const R = (name, platform, handle, notes) => ({ id: uid(), name, platform, handle, notes, createdAt: new Date().toISOString() });
+  const r1 = R('Mara Weaver','Goodreads','mara-weaver','Prefers ePub, reviews every weekend');
+  const r2 = R('Travis Cole','Amazon','trav-reads','Reviews fast, kind notes');
+  const r3 = R('Jenna Ortiz','The StoryGraph','bookishjenna','Asked for the mobi file');
+  const r4 = R('Priya Nandi','TikTok','@priyareads','Short-form AI explainers');
+  const r5 = R('Sam Rivera','YouTube','Sam Reads','Long-form channel, may post early');
+  d.readers = [r1, r2, r3, r4, r5];
+  const A = (reader, sent, due, status, nudges) => ({
+    id: uid(), readerId: reader.id, book: 'The Massive AI Manual', format: 'ePub (file)',
+    sentISO: sent, dueISO: due, status, nudgesSent: nudges || [],
+    createdAt: new Date().toISOString()
+  });
+  const a1 = A(r1, addDays(today, -12), addDays(today, 2), 'waiting', [addDays(today, -1)]);
+  const a2 = A(r2, addDays(today, -20), addDays(today, -5), 'waiting', []);
+  const a3 = A(r3, addDays(today, -14), addDays(today, -2), 'waiting', [addDays(today, -2)]);
+  const a4 = A(r4, addDays(today, -10), addDays(today, 3), 'waiting', []);
+  const a5 = A(r5, addDays(today, -16), addDays(today, 7), 'posted', [addDays(today, -2)]);
+  d.arcs = [a1, a2, a3, a4, a5];
+  const review = {
+    id: uid(), arcId: a5.id, readerId: r5.id, platform: 'YouTube',
+    postedISO: addDays(today, -3), rating: 5, link: '',
+    createdAt: new Date().toISOString()
+  };
+  d.reviews = [review];
+  d.quotes = [
+    { id: uid(), text: 'The chapter on agents finally made it click for me — this is the AI book I hand to friends who swear they hate tech.', readerName: 'Sam Rivera', platform: 'YouTube', rating: 5, arcId: a5.id, createdAt: new Date().toISOString() },
+    { id: uid(), text: 'Reads like a patient friend explaining a scary topic over coffee.', readerName: 'Added by hand', platform: '', rating: '', arcId: '', createdAt: new Date().toISOString() }
+  ];
+  d.thanks = [
+    { id: uid(), readerName: r5.name, book: a5.book, state: 'draft', text: buildThankYou({ name: r5.name, book: a5.book, author: d.settings.authorName, quote: d.quotes[0].text }), createdAt: new Date().toISOString(), sentISO: '' }
+  ];
+  return d;
+}
+
+let db = null;
+let filterArc = 'active';
+let editingReaderId = '';
+let editingArcId = '';
+let pendingReviewArcId = '';
+
+function id(s){ return document.getElementById(s); }
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+    const suffix = c === '&' ? 'amp' : c === '<' ? 'lt' : c === '>' ? 'gt' : c === '"' ? 'quot' : '#39';
+    return '&' + suffix + ';';
+  });
+}
+
+let toastTimer = 0;
+function toast(msg){
+  const el = id('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+function copyText(text, msg){
+  const done = () => toast(msg || 'Copied — paste it wherever you talk to your reader.');
+  if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done));
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+
+function fallbackCopy(text, done){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly','');
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  ta.remove();
+  if (ok) done(); else toast('Copy failed — select the text and copy by hand.');
+}
+
+function switchTab(name){
+  const views = document.querySelectorAll('.view');
+  for (const v of views) v.hidden = v.id !== 'view-' + name;
+  const tabs = document.querySelectorAll('#tabs button');
+  for (const b of tabs) b.setAttribute('aria-selected', String(b.dataset.tab === name));
+}
+
+function getReader(idv){
+  const d = db;
+  return d.readers.find(r => r.id === idv) || null;
+}
+function getArc(idv){
+  const d = db;
+  return d.arcs.find(a => a.id === idv) || null;
+}
+
+function stateChip(arc, plan){
+  if (arc.status === 'posted') return '<span class="chip st-posted">Review posted</span>';
+  if (arc.status === 'archived') return '<span class="chip">Archived</span>';
+  if (!plan || plan.state === 'invalid') return '<span class="chip st-waiting">Check dates</span>';
+  const labels = {
+    waiting: 'Waiting · due ' + shortestDate(arc.dueISO),
+    'due-soon': 'Due soon · ' + duePhrase(plan),
+    'due-today': 'Due today',
+    overdue: 'Overdue · ' + duePhrase(plan)
+  };
+  const cls = plan.state === 'due-soon' ? 'st-due-soon' : plan.state === 'due-today' ? 'st-due-today' : plan.state === 'overdue' ? 'st-overdue' : 'st-waiting';
+  return '<span class="chip ' + cls + '">' + esc(labels[plan.state] || plan.state) + '</span>';
+}
+
+function sortByName(rs){
+  return rs.slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
+}
+
+function onTimeOf(review, arcs){
+  const a = arcs.find(x => x.id === review.arcId);
+  if (!a) return null;
+  return daysBetween(a.dueISO, review.postedISO) !== null && review.postedISO <= a.dueISO;
+}
+
+function renderAll(){
+  renderDashboard();
+  renderReaders();
+  renderArcs();
+  renderReviews();
+  renderQuotes();
+  renderThanks();
+  renderData();
+}
+
+function statHtml(n, t){
+  return '<div class="stat"><div class="n">' + esc(n) + '</div><div class="t">' + esc(t) + '</div></div>';
+}
+
+function renderDashboard(){
+  const d = db;
+  const today = todayISO();
+  const n = new Date();
+  id('dash-day').textContent = WEEKDAYS[n.getDay()] + ', ' + MONTHS[n.getMonth()] + ' ' + n.getDate() + ', ' + n.getFullYear();
+
+  const waiting = d.arcs.filter(a => a.status === 'waiting');
+  const posted = d.arcs.filter(a => a.status === 'posted');
+  const ontime = d.reviews.filter(r => onTimeOf(r, d.arcs) === true);
+  const togo = ontime.length + waiting.filter(a => nudgePlan(a.dueISO, today).state !== 'invalid').length;
+  const pct = togo ? Math.round(ontime.length / d.reviews.length * 100) : 0;
+
+  id('dash-stats').innerHTML =
+    statHtml(d.readers.length, 'readers on the team') +
+    statHtml(waiting.length, 'ARCs waiting for reviews') +
+    statHtml(d.reviews.length, 'reviews done') +
+    statHtml(d.reviews.length ? pct + '%' : '—', 'reviewed on time');
+
+  let nudges = [];
+  for (const a of waiting){
+    const nn = needsNudge(a, today);
+    if (nn) nudges.push({ arc: a, nn });
+  }
+  nudges.sort((x, y) => x.arc.dueISO.localeCompare(y.arc.dueISO));
+  const nudgesEl = id('dash-nudges');
+  if (nudges.length === 0){
+    nudgesEl.innerHTML = '<div class="empty">All caught up — nothing needs a nudge today. Enjoy the writing time.</div>';
+  } else {
+    nudgesEl.innerHTML = '<div class="cards">' + nudges.map(({arc, nn}) => {
+      const r = getReader(arc.readerId);
+      const plan = nn.plan;
+      return '<div class="card">' +
+        '<div class="card-main">' +
+          '<div class="card-title">' + esc(r ? r.name : 'Reader') + ' · ' + esc(arc.book) + '</div>' +
+          '<div class="card-sub">Due ' + esc(friendlyDate(arc.dueISO)) + ' · ' + esc(NUDGE_LABELS[nn.tier] || nn.tier) + '</div>' +
+        '</div>' +
+        '<div class="card-actions">' + stateChip(arc, plan) +
+          '<button type="button" class="mini" data-action="copy-nudge" data-id="' + esc(arc.id) + '">Copy nudge</button>' +
+          '<button type="button" class="mini" data-action="log-nudge" data-id="' + esc(arc.id) + '">Log nudge sent</button>' +
+          '<button type="button" class="mini primary" data-action="open-review" data-id="' + esc(arc.id) + '">Review posted</button>' +
+        '</div>' +
+      '</div>';
+    }).join('') + '</div>';
+  }
+
+  const promises = d.arcs.filter(a => a.status !== 'archived');
+  const doneCount = promises.filter(a => a.status === 'posted').length;
+  const barEl = id('dash-progress-bar');
+  const barPct = promises.length ? Math.round(doneCount / promises.length * 100) : 0;
+  barEl.style.width = barPct + '%';
+  id('dash-progress-label').textContent = promises.length
+    ? doneCount + ' of ' + promises.length + ' promised reviews posted (' + barPct + '%)'
+    : 'No ARC promises yet — send your first advance copy from the ARCs tab.';
+
+  const upcoming = waiting
+    .filter(a => nudgePlan(a.dueISO, today).state !== 'invalid' && !needsNudge(a, today))
+    .sort((a, b) => a.dueISO.localeCompare(b.dueISO))
+    .slice(0, 6);
+  id('dash-upcoming').innerHTML = upcoming.length === 0
+    ? '<div class="empty">No quiet due dates ahead. Add ARCs from the ARCs tab.</div>'
+    : '<div class="rows">' + upcoming.map(a => {
+        const r = getReader(a.readerId);
+        const p = nudgePlan(a.dueISO, today);
+        return '<div class="rowline"><span class="when">' + esc(shortestDate(a.dueISO)) + '</span>' +
+          '<span class="what">' + esc(r ? r.name : 'Reader') + '</span>' +
+          '<span class="muted">' + esc(a.book) + '</span>' +
+          '<span class="chip st-waiting">' + esc(duePhrase(p)) + '</span></div>';
+      }).join('') + '</div>';
+
+  const recent = d.reviews.slice().sort((a, b) => String(b.postedISO).localeCompare(String(a.postedISO))).slice(0, 5);
+  id('dash-recent').innerHTML = recent.length === 0
+    ? '<div class="empty">No finished reviews yet. When you mark one posted, it lands here with an on-time mark.</div>'
+    : '<div class="rows">' + recent.map(rv => {
+        const r = getReader(rv.readerId);
+        const a = d.arcs.find(x => x.id === rv.arcId);
+        const onTime = onTimeOf(rv, d.arcs);
+        const timeChip = onTime === true ? '<span class="chip st-posted">On time</span>' : onTime === false ? '<span class="chip st-overdue">Late</span>' : '';
+        return '<div class="rowline"><span class="when">' + esc(shortestDate(rv.postedISO)) + '</span>' +
+          '<span class="what">' + esc(r ? r.name : 'Reader') + '</span>' +
+          '<span class="muted">' + esc(rv.platform || a && a.book || '') + '</span>' +
+          (rv.rating ? '<span class="chip">' + esc(rv.rating) + '/5</span>' : '') + timeChip + '</div>';
+      }).join('') + '</div>';
+}
+
+function renderReaders(){
+  const d = db;
+  id('count-readers').textContent = '(' + d.readers.length + ')';
+  const sorted = sortByName(d.readers);
+  id('list-readers').innerHTML = sorted.length === 0
+    ? '<div class="empty">No readers yet. Add the first person above — a name and where they post reviews is enough to start.</div>'
+    : '<div class="cards">' + sorted.map(r => {
+        const arcsOf = d.arcs.filter(a => a.readerId === r.id && a.status !== 'archived').length;
+        const done = d.arcs.filter(a => a.readerId === r.id && a.status === 'posted').length;
+        return '<div class="card">' +
+          '<div class="card-main">' +
+            '<div class="card-title">' + esc(r.name) + ' <span class="chip plat">' + esc(r.platform || '—') + '</span></div>' +
+            '<div class="card-sub">' + esc(r.handle ? r.handle : '') + (r.handle ? ' · ' : '') +
+              arcsOf + ' active ARC' + (arcsOf === 1 ? '' : 's') + ' · ' + done + ' review' + (done === 1 ? '' : 's') + ' posted' +
+              (r.notes ? ' · ' + esc(r.notes) : '') +
+            '</div>' +
+          '</div>' +
+          '<div class="card-actions">' +
+            '<button type="button" class="mini" data-action="edit-reader" data-id="' + esc(r.id) + '">Edit</button>' +
+            '<button type="button" class="mini danger" data-action="del-reader" data-id="' + esc(r.id) + '">Delete</button>' +
+          '</div>' +
+        '</div>';
+      }).join('') + '</div>';
+}
+
+function renderArcs(){
+  const d = db;
+  const today = todayISO();
+  id('count-arcs').textContent = '(' + d.arcs.length + ')';
+  const rs = sortByName(d.readers);
+  const sel = id('arc-reader');
+  const prevSel = sel.value;
+  sel.innerHTML = rs.length === 0
+    ? '<option value="">Add a reader first</option>'
+    : '<option value="">Choose a reader…</option>' + rs.map(r => '<option value="' + esc(r.id) + '">' + esc(r.name) + '</option>').join('');
+  if (prevSel && rs.some(r => r.id === prevSel)) sel.value = prevSel;
+  const fmt = id('arc-format');
+  const prevFmt = fmt.value;
+  fmt.innerHTML = FORMATS.map(f => '<option value="' + esc(f) + '">' + esc(f) + '</option>').join('');
+  if (prevFmt) fmt.value = prevFmt;
+  if (!id('arc-book').value) id('arc-book').value = d.settings.defaultBook || '';
+  if (!id('arc-sent').value) id('arc-sent').value = today;
+  if (!id('arc-due').value) id('arc-due').value = addDays(today, Number(d.settings.defaultDueDays) || 21) || today;
+
+  let arcs = d.arcs.slice();
+  if (filterArc === 'active') arcs = arcs.filter(a => a.status === 'waiting');
+  else if (filterArc === 'needs-nudge') arcs = arcs.filter(a => !!needsNudge(a, today));
+  else if (filterArc === 'posted') arcs = arcs.filter(a => a.status === 'posted');
+  else if (filterArc === 'archived') arcs = arcs.filter(a => a.status === 'archived');
+  arcs.sort((a, b) => String(a.dueISO).localeCompare(String(b.dueISO)));
+
+  id('list-arcs').innerHTML = arcs.length === 0
+    ? '<div class="empty">' + (d.arcs.length === 0
+        ? 'No copies tracked yet. When a reader signs up to review, send the file and press “Track ARC” above.'
+        : 'Nothing in this filter right now. Try “Everything”.') + '</div>'
+    : '<div class="cards">' + arcs.map(arcCardHtml).join('') + '</div>';
+
+  id('arc-form-title').textContent = editingArcId ? 'Edit ARC' : 'Send an ARC';
+  id('save-arc').textContent = editingArcId ? 'Save changes' : 'Track ARC';
+  id('cancel-arc-edit').style.display = editingArcId ? 'inline-flex' : 'none';
+}
+
+function arcCardHtml(arc){
+  const r = getReader(arc.readerId);
+  const today = todayISO();
+  const plan = nudgePlan(arc.dueISO, today);
+  const nn = needsNudge(arc, today);
+  const nudgesLog = Array.isArray(arc.nudgesSent) ? arc.nudgesSent.filter(x => parseISODate(x)).sort() : [];
+  const logText = nudgesLog.length ? 'Nudge history: ' + nudgesLog.map(shortestDate).join(', ') : 'No nudges logged yet.';
+  let actions = '';
+  const nudgeable = arc.status === 'waiting' && plan.state !== 'waiting' && plan.state !== 'invalid';
+  if (nudgeable){
+    actions += '<button type="button" class="mini" data-action="copy-nudge" data-id="' + esc(arc.id) + '">Copy nudge message</button>';
+  }
+  if (arc.status === 'waiting'){
+    actions += '<button type="button" class="mini" data-action="log-nudge" data-id="' + esc(arc.id) + '">Log nudge sent</button>';
+    actions += '<button type="button" class="mini primary" data-action="open-review" data-id="' + esc(arc.id) + '">Review posted</button>';
+    actions += '<button type="button" class="mini" data-action="archive-arc" data-id="' + esc(arc.id) + '">Archive</button>';
+  } else if (arc.status === 'posted'){
+    actions += '<button type="button" class="mini" data-action="archive-arc" data-id="' + esc(arc.id) + '">Archive</button>';
+  } else {
+    actions += '<button type="button" class="mini" data-action="unarchive-arc" data-id="' + esc(arc.id) + '">Reactivate</button>';
+  }
+  actions += '<button type="button" class="mini" data-action="edit-arc" data-id="' + esc(arc.id) + '">Edit</button>';
+  actions += '<button type="button" class="mini danger" data-action="del-arc" data-id="' + esc(arc.id) + '">Delete</button>';
+  const nudgeNote = nn && NUDGE_LABELS[nn.tier]
+    ? '<div class="card-sub"><strong>' + esc(NUDGE_LABELS[nn.tier]) + '</strong> is drafted and ready to copy.</div>'
+    : '';
+  return '<div class="card">' +
+    '<div class="card-main">' +
+      '<div class="card-title">' + esc(r ? r.name : 'Reader left') + ' · ' + esc(arc.book) + '</div>' +
+      '<div class="card-sub">' + esc(arc.format) + ' · sent ' + esc(friendlyDate(arc.sentISO)) + ' · review due ' + esc(friendlyDate(arc.dueISO)) + '</div>' +
+      nudgeNote +
+      '<div class="card-sub">' + esc(logText) + '</div>' +
+    '</div>' +
+    '<div class="card-actions">' + stateChip(arc, plan) + actions + '</div>' +
+  '</div>';
+}
+
+function renderReviews(){
+  const d = db;
+  id('count-reviews').textContent = '(' + d.reviews.length + ')';
+  const ontime = d.reviews.filter(r => onTimeOf(r, d.arcs) === true);
+  const late = d.reviews.filter(r => onTimeOf(r, d.arcs) === false);
+  const rated = d.reviews.filter(r => Number(r.rating) > 0);
+  const avg = rated.length ? (rated.reduce((s, r) => s + Number(r.rating), 0) / rated.length).toFixed(1) : '—';
+  id('review-stats').innerHTML =
+    statHtml(d.reviews.length, 'reviews posted') +
+    statHtml(ontime.length, 'on or before due date') +
+    statHtml(late.length, 'after due date') +
+    statHtml(avg, 'average rating');
+
+  const sorted = d.reviews.slice().sort((a, b) => String(b.postedISO).localeCompare(String(a.postedISO)));
+  id('list-reviews').innerHTML = sorted.length === 0
+    ? '<div class="empty">No reviews recorded yet. When one goes up, press “Review posted” on its ARC and it lands here with an on-time mark.</div>'
+    : '<div class="cards">' + sorted.map(reviewCardHtml).join('') + '</div>';
+}
+
+function reviewCardHtml(rv){
+  const d = db;
+  const r = getReader(rv.readerId);
+  const a = d.arcs.find(x => x.id === rv.arcId);
+  const onTime = onTimeOf(rv, d.arcs);
+  const timeChip = onTime === true ? '<span class="chip st-posted">On time</span>' : onTime === false ? '<span class="chip st-overdue">After due date</span>' : '';
+  const linkHtml = typeof rv.link === 'string' && /^https?:\/\//.test(rv.link)
+    ? '<div class="card-sub"><a href="' + esc(rv.link) + '" target="_blank" rel="noopener noreferrer">' + esc(rv.link) + '</a></div>'
+    : (rv.link ? '<div class="card-sub">' + esc(rv.link) + '</div>' : '');
+  const quoteHtml = rv.quote ? '<div class="card-block quote-text">“' + esc(rv.quote) + '”</div>' : '';
+  return '<div class="card">' +
+    '<div class="card-main">' +
+      '<div class="card-title">' + esc(r ? r.name : 'Reader left') + (a ? ' · ' + esc(a.book) : '') + '</div>' +
+      '<div class="card-sub">' + esc(rv.platform || 'platform not set') + ' · posted ' + esc(friendlyDate(rv.postedISO)) +
+        (rv.rating ? ' · ' + esc(rv.rating) + '/5' : '') + '</div>' +
+      linkHtml + quoteHtml +
+    '</div>' +
+    '<div class="card-actions">' + timeChip +
+      '<button type="button" class="mini danger" data-action="del-review" data-id="' + esc(rv.id) + '">Delete</button>' +
+    '</div>' +
+  '</div>';
+}
+
+function renderQuotes(){
+  const d = db;
+  id('count-quotes').textContent = '(' + d.quotes.length + ')';
+  const ta = id('blurb-text');
+  if (!ta.value) ta.value = d.settings.blurbDraft || '';
+  id('list-quotes').innerHTML = d.quotes.length === 0
+    ? '<div class="empty">No quotes harvested yet. When you mark a review posted, drop its best line into the “Favorite quote” box and it lands here.</div>'
+    : '<div class="cards">' + d.quotes.slice().sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).map(q =>
+        '<div class="card">' +
+          '<div class="card-main">' +
+            '<div class="card-block quote-text">“' + esc(q.text) + '”</div>' +
+            '<div class="card-sub">' + esc(q.readerName || 'Reader') +
+              (q.platform ? ' · ' + esc(q.platform) : '') +
+              (q.rating ? ' · ' + esc(q.rating) + '/5' : '') + '</div>' +
+          '</div>' +
+          '<div class="card-actions">' +
+            '<button type="button" class="mini" data-action="add-to-blurb" data-id="' + esc(q.id) + '">Add to blurb</button>' +
+            '<button type="button" class="mini" data-action="copy-quote" data-id="' + esc(q.id) + '">Copy</button>' +
+            '<button type="button" class="mini danger" data-action="del-quote" data-id="' + esc(q.id) + '">Delete</button>' +
+          '</div>' +
+        '</div>'
+      ).join('') + '</div>';
+}
+
+function renderThanks(){
+  const d = db;
+  id('count-thanks').textContent = '(' + d.thanks.length + ')';
+  const drafts = d.thanks.filter(t => t.state !== 'sent');
+  const sent = d.thanks.filter(t => t.state === 'sent').sort((a, b) => String(b.sentISO).localeCompare(String(a.sentISO)));
+  id('list-thanks').innerHTML = drafts.length === 0
+    ? '<div class="empty">No drafts waiting. Add one above, or mark a review posted and a draft appears here automatically.</div>'
+    : '<div class="cards">' + drafts.map(t =>
+        '<div class="card">' +
+          '<div class="card-main">' +
+            '<div class="card-title">' + esc(t.readerName || 'Reader') + (t.book ? ' · ' + esc(t.book) : '') + '</div>' +
+          '</div>' +
+          '<div class="card-block">' +
+            '<textarea data-thanks-text="' + esc(t.id) + '" rows="5">' + esc(t.text) + '</textarea>' +
+          '</div>' +
+          '<div class="card-actions">' +
+            '<button type="button" class="mini" data-action="copy-thanks" data-id="' + esc(t.id) + '">Copy</button>' +
+            '<button type="button" class="mini primary" data-action="thanks-sent" data-id="' + esc(t.id) + '">Mark as sent</button>' +
+            '<button type="button" class="mini danger" data-action="del-thanks" data-id="' + esc(t.id) + '">Delete</button>' +
+          '</div>' +
+        '</div>'
+      ).join('') + '</div>';
+  id('list-thanks-sent').innerHTML = sent.length === 0
+    ? '<div class="empty">Nothing sent yet — that is fine; send one whenever you feel like it.</div>'
+    : '<div class="cards">' + sent.map(t =>
+        '<div class="card">' +
+          '<div class="card-main"><div class="card-title">' + esc(t.readerName || 'Reader') + '</div>' +
+            '<div class="quote-text">' + esc(t.text) + '</div>' +
+            '<div class="card-sub">sent ' + esc(t.sentISO ? friendlyDate(t.sentISO) : '') + '</div></div>' +
+          '<div class="card-actions">' +
+            '<button type="button" class="mini" data-action="copy-thanks" data-id="' + esc(t.id) + '">Copy again</button>' +
+            '<button type="button" class="mini" data-action="thanks-back-to-draft" data-id="' + esc(t.id) + '">Back to draft</button>' +
+            '<button type="button" class="mini danger" data-action="del-thanks" data-id="' + esc(t.id) + '">Delete</button>' +
+          '</div>' +
+        '</div>'
+      ).join('') + '</div>';
+}
+
+function renderData(){
+  const d = db;
+  let size = 0;
+  try { size = (localStorage.getItem(STORAGE_KEY) || '').length; } catch (e) {}
+  id('data-info').textContent = 'Storage used: ' + (size / 1024).toFixed(1) + ' KiB';
+  id('set-author').value = d.settings.authorName || '';
+  id('set-default-book').value = d.settings.defaultBook || '';
+  id('set-default-days').value = d.settings.defaultDueDays;
+}
+
+function fillStaticSelects(){
+  id('reader-platform').innerHTML = PLATFORMS.map(p => '<option value="' + esc(p) + '">' + esc(p) + '</option>').join('');
+  id('review-platform').innerHTML = PLATFORMS.map(p => '<option value="' + esc(p) + '">' + esc(p) + '</option>').join('');
+}
+
+function resetReaderForm(){
+  id('form-reader').reset();
+  id('reader-id').value = '';
+  id('reader-form-title').textContent = 'Add a reader';
+  id('save-reader').textContent = 'Add reader';
+  id('cancel-reader-edit').style.display = 'none';
+}
+
+function resetArcForm(){
+  id('form-arc').reset();
+  id('arc-id').value = '';
+  id('arc-book').value = '';
+  id('arc-sent').value = '';
+  id('arc-due').value = '';
+  editingArcId = '';
+  renderAll();
+}
+
+function hasAnyData(){
+  return db.readers.length + db.arcs.length + db.reviews.length + db.quotes.length + db.thanks.length > 0;
+}
+
+function bind(){
+  id('tabs').addEventListener('click', function(e){
+    const b = e.target.closest('button[data-tab]');
+    if (b) switchTab(b.dataset.tab);
+  });
+
+  id('filter-arc').addEventListener('change', function(){
+    filterArc = this.value;
+    renderArcs();
+  });
+
+  id('form-reader').addEventListener('submit', function(e){
+    e.preventDefault();
+    const name = id('reader-name').value.trim();
+    const platform = id('reader-platform').value;
+    if (!name || !platform){ toast('A name and a platform are needed.'); return; }
+    const handle = id('reader-handle').value.trim();
+    const notes = id('reader-notes').value.trim();
+    if (editingReaderId){
+      const r = getReader(editingReaderId);
+      if (r){ r.name = name; r.platform = platform; r.handle = handle; r.notes = notes; }
+      toast('Reader updated.');
+    } else {
+      db.readers.push({ id: uid(), name, platform, handle, notes, createdAt: new Date().toISOString() });
+      toast('Reader added — send them a copy from the ARCs tab.');
+    }
+    commitDb(db);
+    resetReaderForm();
+    renderAll();
+  });
+  id('cancel-reader-edit').addEventListener('click', function(){
+    editingReaderId = '';
+    resetReaderForm();
+  });
+
+  id('form-arc').addEventListener('submit', function(e){
+    e.preventDefault();
+    const readerId = id('arc-reader').value;
+    const book = id('arc-book').value.trim();
+    const sentIso = id('arc-sent').value;
+    const dueIso = id('arc-due').value;
+    const format = id('arc-format').value;
+    if (!readerId){ toast('Pick the reader this copy goes to.'); return; }
+    if (!getReader(readerId)){ toast('That reader is missing — choose again.'); return; }
+    if (!book){ toast('Add the book title.'); return; }
+    if (!parseISODate(sentIso) || !parseISODate(dueIso)){ toast('Both dates need a real date.'); return; }
+    const span = daysBetween(sentIso, dueIso);
+    if (span === null || span < 0){ toast('The review due date should be on or after the send date.'); return; }
+    if (editingArcId){
+      const a = getArc(editingArcId);
+      if (a){ a.readerId = readerId; a.book = book; a.format = format; a.sentISO = sentIso; a.dueISO = dueIso; }
+      editingArcId = '';
+      toast('ARC updated.');
+    } else {
+      db.arcs.push({ id: uid(), readerId, book, format, sentISO: sentIso, dueISO: dueIso, status: 'waiting', nudgesSent: [], createdAt: new Date().toISOString() });
+      toast('ARC tracked — the dashboard now watches that due date for you.');
+    }
+    commitDb(db);
+    resetArcForm();
+    renderAll();
+  });
+  id('cancel-arc-edit').addEventListener('click', resetArcForm);
+
+  id('form-quote').addEventListener('submit', function(e){
+    e.preventDefault();
+    const text = id('quote-text').value.trim();
+    if (!text){ toast('The quote needs words.'); return; }
+    db.quotes.unshift({ id: uid(), text, readerName: id('quote-source').value.trim(), platform: id('quote-platform').value.trim(), rating: '', arcId: '', createdAt: new Date().toISOString() });
+    commitDb(db);
+    id('form-quote').reset();
+    renderAll();
+    toast('Quote saved to your jar.');
+  });
+
+  id('form-thanks').addEventListener('submit', function(e){
+    e.preventDefault();
+    const name = id('thanks-name').value.trim();
+    const book = id('thanks-book').value.trim();
+    let text = id('thanks-text').value.trim();
+    if (!name){ toast('Note who the thank-you is for.'); return; }
+    if (!text) text = buildThankYou({ name, book, author: db.settings.authorName });
+    db.thanks.unshift({ id: uid(), readerName: name, book, state: 'draft', text, createdAt: new Date().toISOString(), sentISO: '' });
+    commitDb(db);
+    id('form-thanks').reset();
+    renderAll();
+    toast('Draft saved.');
+  });
+
+  id('form-settings').addEventListener('submit', function(e){
+    e.preventDefault();
+    db.settings.authorName = id('set-author').value.trim();
+    const bookVal = id('set-default-book').value.trim();
+    if (bookVal) db.settings.defaultBook = bookVal;
+    let days = parseInt(id('set-default-days').value, 10);
+    if (!Number.isFinite(days) || days < 1) days = 21;
+    if (days > 365) days = 365;
+    db.settings.defaultDueDays = days;
+    id('set-default-days').value = days;
+    commitDb(db);
+    id('arc-book').value = '';
+    renderAll();
+    toast('Settings saved.');
+  });
+
+  id('btn-export').addEventListener('click', function(){
+    if (!hasAnyData()){ toast('Nothing to back up yet.'); return; }
+    const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'arc-review-tracker-backup-' + todayISO() + '.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => { try { URL.revokeObjectURL(url); } catch (e2) {} }, 3000);
+    toast('Backup downloaded. Keep it somewhere cozy.');
+  });
+
+  id('input-import').addEventListener('change', function(){
+    const file = this.files && this.files[0];
+    this.value = '';
+    if (!file) return;
+    const fr = new FileReader();
+    fr.onload = function(){
+      let incoming = null;
+      try { incoming = JSON.parse(String(fr.result)); } catch (err) { toast('That file did not read as JSON.'); return; }
+      const nd = normalizeDb(incoming);
+      const total = nd.readers.length + nd.arcs.length + nd.reviews.length + nd.quotes.length + nd.thanks.length;
+      if (total === 0){ toast('The file holds nothing importable.'); return; }
+      if (hasAnyData() && !window.confirm('Importing a backup replaces everything currently in this browser. Continue?')) { return; }
+      db = nd;
+      commitDb(db);
+      renderAll();
+      toast('Backup imported: ' + nd.readers.length + ' readers, ' + nd.arcs.length + ' ARCs, ' + nd.reviews.length + ' reviews.');
+    };
+    fr.readAsText(file);
+  });
+
+  id('btn-sample').addEventListener('click', function(){
+    if (hasAnyData() && !window.confirm('Add the sample readers and ARCs alongside your current data?')) return;
+    const s = makeSampleDb();
+    for (const k of ['readers','arcs','reviews','quotes','thanks']) db[k] = db[k].concat(s[k]);
+    commitDb(db);
+    renderAll();
+    switchTab('dashboard');
+    toast('Sample data loaded — the dashboard shows a few live examples now.');
+  });
+
+  id('btn-wipe').addEventListener('click', function(){
+    if (!window.confirm('Erase everything stored in this browser? This cannot be undone.')) return;
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e2) {}
+    db = defaultDb();
+    commitDb(db);
+    renderAll();
+    toast('All clear — fresh page.');
+  });
+
+  id('blurb-text').addEventListener('input', function(){
+    db.settings.blurbDraft = this.value;
+    commitDb(db);
+  });
+  id('btn-blurb-copy').addEventListener('click', function(){
+    const v = id('blurb-text').value.trim();
+    if (!v){ toast('The blurb box is empty.'); return; }
+    copyText(v, 'Blurb copied.');
+  });
+  id('btn-blurb-clear').addEventListener('click', function(){
+    id('blurb-text').value = '';
+    db.settings.blurbDraft = '';
+    commitDb(db);
+    toast('Blurb cleared.');
+  });
+
+  id('review-cancel').addEventListener('click', function(){
+    id('modal-review').close();
+  });
+  id('form-review').addEventListener('submit', function(e){
+    e.preventDefault();
+    const arc = pendingReviewArcId ? getArc(pendingReviewArcId) : null;
+    if (!arc){ id('modal-review').close(); pendingReviewArcId = ''; return; }
+    const postedIso = id('review-posted').value;
+    if (!parseISODate(postedIso)){ toast('Pick the day the review went up.'); return; }
+    const platform = id('review-platform').value;
+    const ratingRaw = id('review-rating').value;
+    const rating = ratingRaw ? Number(ratingRaw) : '';
+    const link = id('review-link').value.trim();
+    const quoteText = id('review-quote').value.trim();
+    const r = getReader(arc.readerId);
+    db.reviews.unshift({ id: uid(), arcId: arc.id, readerId: arc.readerId, platform, postedISO: postedIso, rating, link, quote: quoteText, createdAt: new Date().toISOString() });
+    arc.status = 'posted';
+    let msg = 'Review logged';
+    if (quoteText){
+      db.quotes.unshift({ id: uid(), text: quoteText, readerName: r ? r.name : '', platform, rating, arcId: arc.id, createdAt: new Date().toISOString() });
+      msg += ' — the quote lands in your jar';
+    }
+    db.thanks.unshift({ id: uid(), readerName: r ? r.name : '', book: arc.book, state: 'draft', text: buildThankYou({ name: r ? r.name : '', book: arc.book, author: db.settings.authorName, quote: quoteText }), createdAt: new Date().toISOString(), sentISO: '' });
+    msg += '. A thank-you draft is waiting in the Thank-yous tab.';
+    commitDb(db);
+    id('modal-review').close();
+    pendingReviewArcId = '';
+    renderAll();
+    toast(msg);
+  });
+
+  document.addEventListener('click', function(e){
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const action = el.dataset.action;
+    const itemId = el.dataset.id || '';
+    const today = todayISO();
+    if (action === 'copy-nudge'){
+      const arc = getArc(itemId);
+      if (!arc){ toast('That ARC seems to be gone.'); return; }
+      const r = getReader(arc.readerId);
+      const nn = needsNudge(arc, today);
+      const plan = nudgePlan(arc.dueISO, today);
+      const tier = (nn && nn.tier) || plan.tier || 'heads-up';
+      copyText(nudgeMessage(tier, { name: r ? r.name : '', book: arc.book, due: friendlyDate(arc.dueISO), platform: r ? r.platform : '' }),
+        'Nudge copied — paste it wherever you talk to ' + (r ? r.name : 'this reader') + '. Nothing was sent from here.');
+    } else if (action === 'log-nudge'){
+      const arc = getArc(itemId);
+      if (!arc) return;
+      arc.nudgesSent = Array.isArray(arc.nudgesSent) ? arc.nudgesSent : [];
+      if (arc.nudgesSent.indexOf(today) === -1) arc.nudgesSent.push(today);
+      arc.nudgesSent.sort();
+      commitDb(db);
+      renderAll();
+      toast('Noted: you nudged ' + (getReader(arc.readerId) ? getReader(arc.readerId).name : 'this reader') + ' today.');
+    } else if (action === 'open-review'){
+      const arc = getArc(itemId);
+      if (!arc) return;
+      const r = getReader(arc.readerId);
+      pendingReviewArcId = itemId;
+      id('modal-review-for').textContent = arc.book + ' — ' + (r ? r.name : 'reader');
+      const pSel = id('review-platform');
+      const readerPlat = r && PLATFORMS.indexOf(r.platform) !== -1 ? r.platform : 'Other';
+      pSel.value = readerPlat;
+      id('review-posted').value = today;
+      id('review-rating').value = '';
+      id('review-link').value = '';
+      id('review-quote').value = '';
+      id('modal-review').showModal();
+    } else if (action === 'archive-arc'){
+      const arc = getArc(itemId);
+      if (!arc) return;
+      arc.status = 'archived';
+      commitDb(db);
+      renderAll();
+      toast('Moved to the archive — out of sight, never judged.');
+    } else if (action === 'unarchive-arc'){
+      const arc = getArc(itemId);
+      if (!arc) return;
+      arc.status = 'waiting';
+      commitDb(db);
+      renderAll();
+      toast('Back on the waiting list.');
+    } else if (action === 'edit-arc'){
+      const arc = getArc(itemId);
+      if (!arc) return;
+      editingArcId = itemId;
+      switchTab('arcs');
+      id('arc-reader').value = arc.readerId;
+      id('arc-book').value = arc.book;
+      id('arc-format').value = arc.format;
+      id('arc-sent').value = arc.sentISO;
+      id('arc-due').value = arc.dueISO;
+      id('arc-id').value = arc.id;
+      renderArcs();
+      id('arc-form-title').scrollIntoView({ block: 'nearest' });
+    } else if (action === 'del-arc'){
+      const arc = getArc(itemId);
+      if (!arc) return;
+      const tied = db.reviews.filter(rv => rv.arcId === itemId).length;
+      if (!window.confirm('Delete this ARC' + (tied ? ' — its recorded review and quotes go too' : '') + '?')) return;
+      db.reviews = db.reviews.filter(rv => rv.arcId !== itemId);
+      db.quotes = db.quotes.filter(q => q.arcId !== itemId);
+      db.arcs = db.arcs.filter(a => a.id !== itemId);
+      commitDb(db);
+      renderAll();
+      toast('Deleted.');
+    } else if (action === 'edit-reader'){
+      const r = getReader(itemId);
+      if (!r) return;
+      editingReaderId = itemId;
+      id('reader-id').value = r.id;
+      id('reader-name').value = r.name;
+      id('reader-platform').value = r.platform;
+      id('reader-handle').value = r.handle || '';
+      id('reader-notes').value = r.notes || '';
+      id('reader-form-title').textContent = 'Edit reader';
+      id('save-reader').textContent = 'Save changes';
+      id('cancel-reader-edit').style.display = 'inline-flex';
+      switchTab('readers');
+      renderReaders();
+      id('reader-form-title').scrollIntoView({ block: 'nearest' });
+    } else if (action === 'del-reader'){
+      const r = getReader(itemId);
+      if (!r) return;
+      const arcsOf = db.arcs.filter(a => a.readerId === itemId);
+      const msg = arcsOf.length
+        ? 'Delete ' + r.name + ' and their ' + arcsOf.length + ' ARC(s)? Reviews and harvested quotes tied to them go too.'
+        : 'Delete ' + r.name + ' from your reader list?';
+      if (!window.confirm(msg)) return;
+      const delIds = {};
+      for (const a of arcsOf) delIds[a.id] = true;
+      db.arcs = db.arcs.filter(a => a.readerId !== itemId);
+      db.reviews = db.reviews.filter(rv => !rv.arcId || !delIds[rv.arcId]);
+      db.quotes = db.quotes.filter(q => !q.arcId || !delIds[q.arcId]);
+      db.readers = db.readers.filter(x => x.id !== itemId);
+      commitDb(db);
+      renderAll();
+      toast('Reader removed.');
+    } else if (action === 'del-review'){
+      if (!window.confirm('Remove this review from your history? The ARC stays on the list.')) return;
+      db.reviews = db.reviews.filter(rv => rv.id !== itemId);
+      commitDb(db);
+      renderAll();
+      toast('Review removed from history.');
+    } else if (action === 'add-to-blurb'){
+      const q = db.quotes.find(x => x.id === itemId);
+      if (!q) return;
+      const ta = id('blurb-text');
+      const base = ta.value.trimEnd();
+      const attribution = '— ' + (q.readerName || 'a reader') + (q.platform ? ' · ' + q.platform : '');
+      ta.value = (base ? base + '\n\n' : '') + q.text + '\n' + attribution;
+      db.settings.blurbDraft = ta.value;
+      commitDb(db);
+      toast('Added to the working blurb.');
+    } else if (action === 'copy-quote'){
+      const q = db.quotes.find(x => x.id === itemId);
+      if (!q) return;
+      copyText(q.text, 'Quote copied.');
+    } else if (action === 'del-quote'){
+      if (!window.confirm('Remove this quote from your jar?')) return;
+      db.quotes = db.quotes.filter(q => q.id !== itemId);
+      commitDb(db);
+      renderAll();
+      toast('Quote removed.');
+    } else if (action === 'copy-thanks'){
+      const t = db.thanks.find(x => x.id === itemId);
+      if (!t) return;
+      copyText(t.text, 'Thank-you copied — send it wherever this reader hears from you.');
+    } else if (action === 'thanks-sent'){
+      const t = db.thanks.find(x => x.id === itemId);
+      if (!t) return;
+      t.state = 'sent';
+      t.sentISO = today;
+      commitDb(db);
+      renderAll();
+      toast('Marked sent — kind act done.');
+    } else if (action === 'thanks-back-to-draft'){
+      const t = db.thanks.find(x => x.id === itemId);
+      if (!t) return;
+      t.state = 'draft';
+      t.sentISO = '';
+      commitDb(db);
+      renderAll();
+      toast('Back in the draft pile.');
+    } else if (action === 'del-thanks'){
+      if (!window.confirm('Delete this thank-you note?')) return;
+      db.thanks = db.thanks.filter(x => x.id !== itemId);
+      commitDb(db);
+      renderAll();
+      toast('Note deleted.');
+    }
+  });
+
+  document.addEventListener('input', function(e){
+    const t = e.target;
+    if (t && t.dataset && t.dataset.thanksText){
+      const note = db.thanks.find(x => x.id === t.dataset.thanksText);
+      if (note){ note.text = t.value; commitDb(db); }
+    }
+  });
+}
+
+function boot(){
+  db = getDb();
+  renderAll();
+  fillStaticSelects();
+  bind();
+  switchTab('dashboard');
+}
+
+if (typeof document !== 'undefined'){
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "arc-review-tracker-webapp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Offline single-file web app for authors managing advance reader copies (ARCs): reader list, due dates, friendly nudges, review history, quote harvesting and thank-you drafts, all in localStorage.",
+  "scripts": {
+    "test": "node tests/nudge-math.test.mjs"
+  },
+  "license": "MIT",
+  "author": "Asdale Dynamics, LLC",
+  "bugs": "https://github.com/dylanasdale"
+}
